@@ -18,30 +18,34 @@ export function FavoritesList() {
 
   return (
     <Card className="h-full flex flex-col border-0 shadow-none bg-transparent ring-0">
-      <CardHeader className="flex-shrink-0 pb-3">
-        <div className="flex items-center gap-2">
-          <Heart className="h-5 w-5 text-red-500 fill-red-500" />
-          <CardTitle className="text-base sm:text-lg">Your Favorites</CardTitle>
+      <CardHeader className="flex-shrink-0 pb-4 px-2">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-xl bg-primary/10">
+            <Heart className="h-5 w-5 text-primary fill-primary" />
+          </div>
+          <CardTitle className="text-xl font-bold tracking-tight">Your Favorites</CardTitle>
           {favorites.length > 0 && (
-            <Badge variant="secondary" className="rounded-full">
+            <Badge className="rounded-full bg-primary/10 text-primary border-0 font-bold">
               {favorites.length}
             </Badge>
           )}
         </div>
       </CardHeader>
-      <CardContent className="flex-1 overflow-auto">
+      <CardContent className="flex-1 overflow-auto px-2">
         {favorites.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-muted-foreground space-y-4">
-            <div className="w-20 h-20 rounded-full bg-muted/20 flex items-center justify-center mb-2 animate-pulse">
-              <Heart className="h-8 w-8 text-muted-foreground/30 fill-current" />
+          <div className="h-full flex flex-col items-center justify-center text-muted-foreground space-y-4 py-12">
+            <div className="w-24 h-24 rounded-full bg-muted/30 flex items-center justify-center mb-2 animate-float">
+              <Heart className="h-10 w-10 text-muted-foreground/20 fill-current" />
             </div>
-            <div className="text-center">
-              <p className="text-xl font-bold text-foreground">No favorites yet</p>
-              <p className="text-sm text-muted-foreground mt-1">Click the heart to add Pokémon</p>
+            <div className="text-center space-y-2">
+              <p className="text-xl font-bold text-foreground/80">No favorites yet</p>
+              <p className="text-sm text-muted-foreground">
+                Click the heart on any Pokémon to add it here
+              </p>
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4 pb-4">
+          <div className="grid grid-cols-1 gap-4 pb-4">
             {favorites.map((pokemon) => {
               const isItemTranslating = isTranslating && activeId === pokemon.id
 

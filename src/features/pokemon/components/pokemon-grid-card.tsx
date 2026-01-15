@@ -1,10 +1,10 @@
 import { BookOpen, Heart, Ruler, Weight } from 'lucide-react'
-import { memo } from 'react'
+import { memo, useCallback, useEffect, useState } from 'react'
 import { ShakespeareCard } from '@/features/common/components/shakespeare-card'
 import { cn } from '@/lib/utils'
 
-// Re-defining for self-containment or import from types if available
-interface DetailedPokemon {
+// Types
+interface Pokemon {
   id: number
   name: string
   imageUrl: string
@@ -16,36 +16,161 @@ interface DetailedPokemon {
 }
 
 interface PokemonGridCardProps {
-  details: DetailedPokemon
+  details: Pokemon
   isFavorite: boolean
-  onToggleFavorite: (pokemon: DetailedPokemon) => void
+  onToggleFavorite: (pokemon: Pokemon) => void
   shakespeareDesc: string | null
   isTranslating: boolean
   rateLimitError: string | null
-  onTranslate: (pokemon: DetailedPokemon) => void
+  onTranslate: (pokemon: Pokemon) => void
 }
 
+// Constants
 const TYPE_COLORS: Record<string, string> = {
-  fire: 'bg-orange-500/80 text-white',
-  water: 'bg-blue-500/80 text-white',
-  grass: 'bg-green-500/80 text-white',
-  electric: 'bg-yellow-500/80 text-black',
-  ice: 'bg-cyan-400/80 text-black',
-  fighting: 'bg-red-700/80 text-white',
-  poison: 'bg-purple-500/80 text-white',
-  ground: 'bg-amber-600/80 text-white',
-  flying: 'bg-indigo-400/80 text-white',
-  psychic: 'bg-pink-500/80 text-white',
-  bug: 'bg-lime-500/80 text-black',
-  rock: 'bg-stone-500/80 text-white',
-  ghost: 'bg-violet-600/80 text-white',
-  dragon: 'bg-indigo-600/80 text-white',
-  dark: 'bg-gray-700/80 text-white',
-  steel: 'bg-slate-400/80 text-black',
-  fairy: 'bg-pink-300/80 text-black',
-  normal: 'bg-gray-400/80 text-black',
+  fire: 'bg-orange-500 text-white',
+  water: 'bg-blue-500 text-white',
+  grass: 'bg-emerald-500 text-white',
+  electric: 'bg-yellow-400 text-gray-900',
+  ice: 'bg-cyan-400 text-gray-900',
+  fighting: 'bg-red-700 text-white',
+  poison: 'bg-purple-500 text-white',
+  ground: 'bg-amber-600 text-white',
+  flying: 'bg-indigo-400 text-white',
+  psychic: 'bg-pink-500 text-white',
+  bug: 'bg-lime-500 text-gray-900',
+  rock: 'bg-stone-500 text-white',
+  ghost: 'bg-violet-600 text-white',
+  dragon: 'bg-indigo-600 text-white',
+  dark: 'bg-gray-700 text-white',
+  steel: 'bg-slate-400 text-gray-900',
+  fairy: 'bg-pink-300 text-gray-900',
+  normal: 'bg-gray-400 text-gray-900',
 }
 
+const TYPE_GRADIENTS: Record<string, string> = {
+  fire: 'type-gradient-fire',
+  water: 'type-gradient-water',
+  grass: 'type-gradient-grass',
+  electric: 'type-gradient-electric',
+  ice: 'type-gradient-ice',
+  psychic: 'type-gradient-psychic',
+  dragon: 'type-gradient-dragon',
+  dark: 'type-gradient-dark',
+  fairy: 'type-gradient-fairy',
+}
+
+const GLOW_COLORS: Record<string, string> = {
+  fire: 'bg-orange-500',
+  water: 'bg-blue-500',
+  grass: 'bg-emerald-500',
+  electric: 'bg-yellow-400',
+}
+
+// Sub-components
+function PokeballDecoration() {
+  return (
+    <div className="absolute top-4 right-4 w-20 h-20 opacity-[0.03] pointer-events-none">
+      <svg viewBox="0 0 100 100" className="w-full h-full" aria-hidden="true">
+        <circle cx="50" cy="50" r="48" fill="none" stroke="currentColor" strokeWidth="4" />
+        <line x1="2" y1="50" x2="98" y2="50" stroke="currentColor" strokeWidth="4" />
+        <circle cx="50" cy="50" r="15" fill="none" stroke="currentColor" strokeWidth="4" />
+      </svg>
+    </div>
+  )
+}
+
+function PokemonImage({
+  src,
+  name,
+  primaryType,
+}: {
+  src: string
+  name: string
+  primaryType: string
+}) {
+  const glowColor = GLOW_COLORS[primaryType] || 'bg-primary'
+
+  return (
+    <div className="relative w-24 h-24 flex-shrink-0">
+      <div
+        className={cn(
+          'absolute inset-0 rounded-full blur-xl opacity-0 group-hover:opacity-30 transition-opacity duration-500',
+          glowColor,
+        )}
+      />
+      <img
+        src={src}
+        alt={name}
+        width={96}
+        height={96}
+        className="w-full h-full object-contain transition-transform group-hover:scale-110 duration-300 drop-shadow-lg relative z-10"
+        loading="lazy"
+        decoding="async"
+      />
+    </div>
+  )
+}
+
+function TypeBadge({ type }: { type: string }) {
+  return (
+    <span
+      className={cn(
+        'px-2.5 py-0.5 rounded-full text-[10px] uppercase font-bold tracking-wider',
+        TYPE_COLORS[type] || 'bg-gray-500 text-white',
+      )}
+    >
+      {type}
+    </span>
+  )
+}
+
+function StatBadge({
+  icon: Icon,
+  value,
+  unit,
+}: {
+  icon: typeof Ruler
+  value: number
+  unit: string
+}) {
+  return (
+    <span className="flex items-center gap-1 bg-muted/50 px-2 py-1 rounded-md text-xs font-medium text-muted-foreground">
+      <Icon className="h-3 w-3" />
+      {(value / 10).toFixed(1)}
+      {unit}
+    </span>
+  )
+}
+
+function FavoriteButton({
+  isFavorite,
+  isAnimating,
+  onClick,
+}: {
+  isFavorite: boolean
+  isAnimating: boolean
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="p-2 -mr-2 -mt-1 rounded-full hover:bg-primary/10 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+    >
+      <Heart
+        className={cn(
+          'h-5 w-5 transition-all',
+          isAnimating && 'animate-heart-bounce',
+          isFavorite
+            ? 'fill-primary text-primary'
+            : 'text-muted-foreground/30 hover:text-primary/60',
+        )}
+      />
+    </button>
+  )
+}
+
+// Main Component
 export const PokemonGridCard = memo(function PokemonGridCard({
   details,
   isFavorite,
@@ -55,97 +180,101 @@ export const PokemonGridCard = memo(function PokemonGridCard({
   rateLimitError,
   onTranslate,
 }: PokemonGridCardProps) {
+  const [isHeartAnimating, setIsHeartAnimating] = useState(false)
+  const primaryType = details.types?.[0] || 'normal'
+
+  const handleFavoriteClick = useCallback(() => {
+    setIsHeartAnimating(true)
+    onToggleFavorite(details)
+  }, [details, onToggleFavorite])
+
+  const handleTranslate = useCallback(() => {
+    onTranslate(details)
+  }, [details, onTranslate])
+
+  useEffect(() => {
+    if (isHeartAnimating) {
+      const timer = setTimeout(() => setIsHeartAnimating(false), 400)
+      return () => clearTimeout(timer)
+    }
+  }, [isHeartAnimating])
+
+  const description = details.description || 'No description available for this Pokémon.'
+
   return (
-    <div className="relative p-4 sm:p-6 rounded-[2rem] bg-card hover:bg-card/90 transition-all duration-300 h-full flex flex-col border border-border/40 hover:border-amber-500/30 hover:shadow-xl group">
-      <div className="space-y-3 flex-1 flex flex-col">
+    <article
+      className={cn(
+        'relative p-5 rounded-2xl transition-all duration-300',
+        'bg-card/60 backdrop-blur-md',
+        'border border-white/10 hover:border-primary/20',
+        'shadow-lg shadow-black/5 hover:shadow-xl hover:shadow-primary/10',
+        'group',
+        TYPE_GRADIENTS[primaryType],
+      )}
+    >
+      <PokeballDecoration />
+
+      <div className="relative z-10 space-y-4">
+        {/* Header */}
         <div className="flex gap-4">
           <div className="flex flex-col items-center gap-1">
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-tr from-amber-500/0 to-amber-500/0 group-hover:from-amber-500/10 group-hover:to-transparent rounded-full transition-all duration-500" />
-              <img
-                src={details.spriteUrl || details.imageUrl}
-                alt={details.name}
-                width={96}
-                height={96}
-                className="w-24 h-24 object-contain transition-transform hover:scale-110 duration-300 drop-shadow-sm"
-                loading="lazy"
-                decoding="async"
-              />
-            </div>
-            <span className="text-xs text-muted-foreground font-mono font-medium opacity-70">
+            <PokemonImage
+              src={details.spriteUrl || details.imageUrl}
+              name={details.name}
+              primaryType={primaryType}
+            />
+            <span className="text-[10px] text-muted-foreground/50 font-mono font-semibold">
               #{details.id.toString().padStart(3, '0')}
             </span>
           </div>
+
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
-              <h3 className="font-bold capitalize text-lg tracking-tight text-foreground/90 group-hover:text-foreground transition-colors">
+              <h3 className="font-bold capitalize text-lg text-foreground group-hover:text-primary transition-colors">
                 {details.name}
               </h3>
-              <button
-                type="button"
-                onClick={() => onToggleFavorite(details)}
-                className="p-2 -mr-2 -mt-2 rounded-full hover:bg-muted/50 transition-colors focus:outline-none"
-              >
-                <Heart
-                  className={cn(
-                    'h-6 w-6 transition-all',
-                    isFavorite
-                      ? 'fill-red-500 text-red-500 scale-110 drop-shadow-sm'
-                      : 'text-muted-foreground/40 hover:text-red-400',
-                  )}
-                />
-              </button>
+              <FavoriteButton
+                isFavorite={isFavorite}
+                isAnimating={isHeartAnimating}
+                onClick={handleFavoriteClick}
+              />
             </div>
 
-            {details.types && details.types.length > 0 && (
+            {details.types?.length > 0 && (
               <div className="flex gap-1.5 mt-2 flex-wrap">
-                {(details.types || []).map((type: string) => (
-                  <span
-                    key={type}
-                    className={cn(
-                      'px-2.5 py-0.5 rounded-full text-[10px] uppercase font-bol tracking-wider shadow-sm border border-black/5',
-                      TYPE_COLORS[type] || 'bg-gray-500/80 text-white',
-                    )}
-                  >
-                    {type}
-                  </span>
+                {details.types.map((type) => (
+                  <TypeBadge key={type} type={type} />
                 ))}
               </div>
             )}
 
-            <div className="flex gap-3 mt-4 text-xs font-medium text-muted-foreground/80">
-              <span className="flex items-center gap-1.5 bg-muted/40 px-2 py-1 rounded-md border border-border/50">
-                <Ruler className="h-3 w-3" />
-                {((details.height || 0) / 10).toFixed(1)}m
-              </span>
-              <span className="flex items-center gap-1.5 bg-muted/40 px-2 py-1 rounded-md border border-border/50">
-                <Weight className="h-3 w-3" />
-                {((details.weight || 0) / 10).toFixed(1)}kg
-              </span>
+            <div className="flex gap-2 mt-3">
+              <StatBadge icon={Ruler} value={details.height || 0} unit="m" />
+              <StatBadge icon={Weight} value={details.weight || 0} unit="kg" />
             </div>
           </div>
         </div>
 
-        <div className="pt-4 mt-2 border-t border-border/40 flex-1 flex flex-col gap-2">
-          {/* Default Pokedex Entry - simplified or integrated */}
-          {/* Default Pokedex Entry */}
-          <div className="flex items-center gap-2 opacity-60">
+        {/* Pokédex Entry - Fixed 3 lines min height */}
+        <div className="pt-3 border-t border-border/30">
+          <div className="flex items-center gap-2 text-muted-foreground/60 mb-2">
             <BookOpen className="h-3 w-3" />
-            <span className="text-[10px] font-bold uppercase tracking-widest">Entry</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider">Pokédex Entry</span>
           </div>
-          <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3">
-            {details.description || 'No description available for this Pokémon.'}
+          <p className="text-sm text-muted-foreground leading-relaxed min-h-[3.75rem]">
+            {description}
           </p>
-
-          <ShakespeareCard
-            description={details.description || ''}
-            shakespeareDescription={shakespeareDesc}
-            isLoading={isTranslating}
-            rateLimitError={rateLimitError}
-            onTranslate={() => onTranslate(details)}
-          />
         </div>
+
+        {/* Shakespeare Translation */}
+        <ShakespeareCard
+          description={details.description || ''}
+          shakespeareDescription={shakespeareDesc}
+          isLoading={isTranslating}
+          rateLimitError={rateLimitError}
+          onTranslate={handleTranslate}
+        />
       </div>
-    </div>
+    </article>
   )
 })

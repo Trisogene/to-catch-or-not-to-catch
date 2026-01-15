@@ -23,7 +23,7 @@ function App() {
   return (
     <div
       id="App-Container"
-      className="h-[100dvh] w-full flex flex-col bg-background overflow-hidden"
+      className="h-[100dvh] w-full flex flex-col overflow-hidden"
     >
       <NavBar />
 
