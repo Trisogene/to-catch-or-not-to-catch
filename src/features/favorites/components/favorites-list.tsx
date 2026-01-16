@@ -37,7 +37,7 @@ export function FavoritesList() {
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4 pb-4">
-            {favorites.map((pokemon) => (
+            {[...favorites].reverse().map((pokemon) => (
               <PokemonCard key={pokemon.id} details={pokemon} />
             ))}
           </div>
