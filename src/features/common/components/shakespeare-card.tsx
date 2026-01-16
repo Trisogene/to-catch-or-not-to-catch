@@ -1,12 +1,16 @@
 import { Feather, Loader2, RefreshCw, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useShakespeareTranslation } from '@/features/common/hooks/use-shakespeare-translation'
+import { getCachedTranslation } from '@/lib/translation-cache'
+
+interface Pokemon {
+  id: number
+  name: string
+  description: string | null
+}
 
 interface ShakespeareCardProps {
-  description: string
-  shakespeareDescription: string | null
-  isLoading: boolean
-  rateLimitError: string | null
-  onTranslate: () => void
+  pokemon: Pokemon
 }
 
 // Constants
@@ -101,15 +105,20 @@ function TranslatePrompt({
 }
 
 // Main Component
-export function ShakespeareCard({
-  description,
-  shakespeareDescription,
-  isLoading,
-  rateLimitError,
-  onTranslate,
-}: ShakespeareCardProps) {
-  if (shakespeareDescription) {
-    return <TranslatedContent text={shakespeareDescription} />
+export function ShakespeareCard({ pokemon }: ShakespeareCardProps) {
+  const {
+    translate,
+    isLoading: isTranslating,
+    error: rateLimitError,
+    activeId,
+  } = useShakespeareTranslation()
+
+  // Check cache first
+  const cachedTranslation = getCachedTranslation(pokemon.id)
+  const isLoading = isTranslating && activeId === pokemon.id
+
+  if (cachedTranslation) {
+    return <TranslatedContent text={cachedTranslation} />
   }
 
   if (isLoading) {
@@ -117,6 +126,10 @@ export function ShakespeareCard({
   }
 
   return (
-    <TranslatePrompt onTranslate={onTranslate} disabled={!description} error={rateLimitError} />
+    <TranslatePrompt
+      onTranslate={() => translate(pokemon)}
+      disabled={!pokemon.description}
+      error={rateLimitError}
+    />
   )
 }

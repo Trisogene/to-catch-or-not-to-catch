@@ -1,63 +1,64 @@
-import { Loader2 } from 'lucide-react'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useShakespeareTranslation } from '@/features/common/hooks/use-shakespeare-translation'
 import { usePokemonData, usePokemonDetails } from '@/features/pokemon/hooks/use-pokemon-data'
-import { getCachedTranslation } from '@/lib/translation-cache'
 import { useAppStore } from '@/store/use-app-store'
 import { PokemonGridCard } from './pokemon-grid-card'
 
 export function PokemonList() {
   const isSearching = useAppStore((state) => state.isSearching)
-  const toggleFavorite = useAppStore((state) => state.toggleFavorite)
-  const favorites = useAppStore((state) => state.favorites)
-
-  const isFavorite = (id: number) => favorites.some((p) => p.id === id)
-
   const parentRef = useRef<HTMLDivElement>(null)
 
   // Custom Hooks
   const { filteredList, isLoading } = usePokemonData()
-  const {
-    translate,
-    isLoading: isTranslating,
-    error: rateLimitError,
-    activeId,
-  } = useShakespeareTranslation()
 
-  // Wrap translate to match the signature or just use it directly
-  // The hook's translate returns string | null, which is fine to ignore.
-
-  // Infinite Scroll Logic
-  const [visibleCount, setVisibleCount] = useState(12)
-  const loaderRef = useRef<HTMLDivElement>(null)
+  // Grid responsiveness: 1 column by default, 2 columns on 'md' (768px+)
+  const [columns, setColumns] = useState(1)
 
   useEffect(() => {
-    setVisibleCount(12)
-    if (parentRef.current) parentRef.current.scrollTop = 0
+    const checkColumns = () => {
+      // Logic matching standard Tailwind 'md' breakpoint (768px)
+      // Note: PokemonGridCard uses grid-cols-1 md:grid-cols-2
+      if (window.matchMedia('(min-width: 768px)').matches) {
+        setColumns(2)
+      } else {
+        setColumns(1)
+      }
+    }
+
+    checkColumns()
+    window.addEventListener('resize', checkColumns)
+    return () => window.removeEventListener('resize', checkColumns)
   }, [])
 
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) {
-          setVisibleCount((prev) => Math.min(prev + 12, filteredList.length))
-        }
-      },
-      { root: parentRef.current, threshold: 0.1, rootMargin: '400px' },
-    )
+  // Virtualization
+  const rowCount = Math.ceil(filteredList.length / columns)
 
-    const currentLoader = loaderRef.current
-    if (currentLoader) observer.observe(currentLoader)
-    return () => {
-      if (currentLoader) observer.unobserve(currentLoader)
-    }
-  }, [filteredList.length])
+  const rowVirtualizer = useVirtualizer({
+    count: rowCount,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 400, // Approximate height of a card row
+    overscan: 5,
+  })
 
-  const visibleList = useMemo(
-    () => filteredList.slice(0, visibleCount),
-    [filteredList, visibleCount],
-  )
-  const detailsMap = usePokemonDetails(visibleList)
+  // We need details for the currently visible items
+  // With virtualization, we calculate which items are visible
+  const virtualRows = rowVirtualizer.getVirtualItems()
+  
+  // Calculate the range of items currently rendered to fetch details for them
+  // This is a bit of an optimization: we only want to fetch details for the items that are "visible" (virtualized)
+  const visibleItems = useMemo(() => {
+    if (!virtualRows.length) return []
+    
+    const startRow = virtualRows[0].index
+    const endRow = virtualRows[virtualRows.length - 1].index
+    
+    const startIndex = startRow * columns
+    const endIndex = Math.min((endRow + 1) * columns, filteredList.length)
+    
+    return filteredList.slice(startIndex, endIndex)
+  }, [virtualRows, columns, filteredList])
+
+  const detailsMap = usePokemonDetails(visibleItems)
 
   // Loading Skeleton
   if (isLoading || isSearching) {
@@ -69,7 +70,7 @@ export function PokemonList() {
         </div>
         <div className="flex-1 overflow-auto px-6 w-full">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-8">
-            {Array.from({ length: 8 }).map((_, i) => (
+            {Array.from({ length: 6 }).map((_, i) => (
               <div
                 // biome-ignore lint/suspicious/noArrayIndexKey: Skeleton loaders don't have IDs
                 key={i}
@@ -113,51 +114,54 @@ export function PokemonList() {
             <p className="text-sm text-muted-foreground mt-1">Try adjusting your filters</p>
           </div>
         ) : (
-          <div className="pb-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {visibleList.map((item: { name: string; url: string }) => {
-                const details = detailsMap.get(item.name)
-                const isLoading = !details
-                const isFav = details ? isFavorite(details.id) : false
+          <div
+            style={{
+              height: `${rowVirtualizer.getTotalSize()}px`,
+              width: '100%',
+              position: 'relative',
+            }}
+          >
+            {virtualRows.map((virtualRow) => {
+              const rowIndex = virtualRow.index
+              const startItemIndex = rowIndex * columns
+              const itemsInRow = filteredList.slice(
+                startItemIndex,
+                Math.min(startItemIndex + columns, filteredList.length),
+              )
 
-                // Logic to get translation: Check cache.
-                const shakespeareDesc = details ? getCachedTranslation(details.id) || null : null
-                const isItemTranslating = isTranslating && activeId === details?.id
+              return (
+                <div
+                  key={virtualRow.key}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: `${virtualRow.size}px`,
+                    transform: `translateY(${virtualRow.start}px)`,
+                  }}
+                  className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-6"
+                >
+                  {itemsInRow.map((item: { name: string; url: string }) => {
+                    const details = detailsMap.get(item.name)
+                    const isLoading = !details
 
-                if (isLoading) {
-                  return (
-                    <div
-                      key={item.name}
-                      className="h-96 w-full rounded-3xl bg-muted/20 animate-shimmer border border-border/30"
-                    />
-                  )
-                }
+                    if (isLoading) {
+                      return (
+                        <div
+                          key={item.name}
+                          className="h-full w-full rounded-3xl bg-muted/20 animate-shimmer border border-border/30"
+                        />
+                      )
+                    }
 
-                return (
-                  <PokemonGridCard
-                    key={details.name}
-                    details={details}
-                    isFavorite={isFav}
-                    onToggleFavorite={toggleFavorite}
-                    shakespeareDesc={shakespeareDesc}
-                    isTranslating={isItemTranslating}
-                    rateLimitError={rateLimitError}
-                    onTranslate={(p) => {
-                      translate(p)
-                    }}
-                  />
-                )
-              })}
-            </div>
-
-            {visibleCount < filteredList.length && (
-              <div ref={loaderRef} className="h-24 flex items-center justify-center w-full mt-8">
-                <div className="flex items-center gap-3 text-muted-foreground">
-                  <Loader2 className="h-6 w-6 animate-spin text-primary/50" />
-                  <span className="text-sm font-medium">Loading more...</span>
+                    return <PokemonGridCard key={details.name} details={details} />
+                  })}
+                  {/* Fill empty space if last row has fewer items than columns */}
+                  {itemsInRow.length < columns && <div className="hidden md:block" />}
                 </div>
-              </div>
-            )}
+              )
+            })}
           </div>
         )}
       </div>

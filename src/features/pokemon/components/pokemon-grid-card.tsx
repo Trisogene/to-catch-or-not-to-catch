@@ -2,6 +2,7 @@ import { BookOpen, Heart, Ruler, Weight } from 'lucide-react'
 import { memo, useCallback, useEffect, useState } from 'react'
 import { ShakespeareCard } from '@/features/common/components/shakespeare-card'
 import { cn } from '@/lib/utils'
+import { useAppStore } from '@/store/use-app-store'
 
 // Types
 interface Pokemon {
@@ -13,16 +14,6 @@ interface Pokemon {
   height: number
   weight: number
   description: string | null
-}
-
-interface PokemonGridCardProps {
-  details: Pokemon
-  isFavorite: boolean
-  onToggleFavorite: (pokemon: Pokemon) => void
-  shakespeareDesc: string | null
-  isTranslating: boolean
-  rateLimitError: string | null
-  onTranslate: (pokemon: Pokemon) => void
 }
 
 // Constants
@@ -171,26 +162,25 @@ function FavoriteButton({
 }
 
 // Main Component
+
 export const PokemonGridCard = memo(function PokemonGridCard({
   details,
-  isFavorite,
-  onToggleFavorite,
-  shakespeareDesc,
-  isTranslating,
-  rateLimitError,
-  onTranslate,
-}: PokemonGridCardProps) {
+}: {
+  details: Pokemon
+}) {
   const [isHeartAnimating, setIsHeartAnimating] = useState(false)
   const primaryType = details.types?.[0] || 'normal'
 
+  // Access store internally
+  const favorites = useAppStore((state) => state.favorites)
+  const toggleFavorite = useAppStore((state) => state.toggleFavorite)
+
+  const isFavorite = favorites.some((p) => p.id === details.id)
+
   const handleFavoriteClick = useCallback(() => {
     setIsHeartAnimating(true)
-    onToggleFavorite(details)
-  }, [details, onToggleFavorite])
-
-  const handleTranslate = useCallback(() => {
-    onTranslate(details)
-  }, [details, onTranslate])
+    toggleFavorite(details)
+  }, [details, toggleFavorite])
 
   useEffect(() => {
     if (isHeartAnimating) {
@@ -201,6 +191,7 @@ export const PokemonGridCard = memo(function PokemonGridCard({
 
   const description = details.description || 'No description available for this Pokémon.'
 
+  // The ShakespeareCard now handles its own translation logic via the hook
   return (
     <article
       className={cn(
@@ -268,11 +259,7 @@ export const PokemonGridCard = memo(function PokemonGridCard({
 
         {/* Shakespeare Translation */}
         <ShakespeareCard
-          description={details.description || ''}
-          shakespeareDescription={shakespeareDesc}
-          isLoading={isTranslating}
-          rateLimitError={rateLimitError}
-          onTranslate={handleTranslate}
+          pokemon={details}
         />
       </div>
     </article>
