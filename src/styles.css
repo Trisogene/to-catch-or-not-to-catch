@@ -157,6 +157,9 @@
   html {
     @apply font-sans h-[100dvh] overflow-hidden;
   }
+  button {
+    @apply cursor-pointer;
+  }
 }
 
 /* Background pattern - subtle grid */

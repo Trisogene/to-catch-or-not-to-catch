@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { fetchPokemonSpecies } from './pokemon.service'
-import { translateToShakespearean } from './shakespeare.service'
+import { fetchAllPokemonBasicInfo, fetchPokemonByType, fetchPokemonList, fetchPokemonSpecies, getPokemonWithDescription } from './pokemon.service'
+
 
 describe('pokemon.service', () => {
   beforeEach(() => {
@@ -42,15 +42,13 @@ describe('pokemon.service', () => {
     })
   })
 
-  describe('translateToShakespearean', () => {
-    it('should translate text to Shakespearean style', async () => {
+  describe('fetchPokemonList', () => {
+    it('should fetch pokemon list', async () => {
       const mockResponse = {
-        success: { total: 1 },
-        contents: {
-          translated: 'Thee art a pokemon!',
-          text: 'You are a pokemon!',
-          translation: 'shakespeare',
-        },
+        results: [
+          { name: 'bulbasaur', url: 'https://pokeapi.co/api/v2/pokemon/1/' },
+          { name: 'ivysaur', url: 'https://pokeapi.co/api/v2/pokemon/2/' },
+        ],
       }
 
       global.fetch = vi.fn().mockResolvedValueOnce({
@@ -58,28 +56,116 @@ describe('pokemon.service', () => {
         json: () => Promise.resolve(mockResponse),
       })
 
-      const result = await translateToShakespearean('You are a pokemon!')
+      const result = await fetchPokemonList(0, 2)
 
-      expect(result).toBe('Thee art a pokemon!')
+      expect(fetch).toHaveBeenCalledWith('https://pokeapi.co/api/v2/pokemon?offset=0&limit=2')
+      expect(result).toEqual(mockResponse)
+    })
+  })
+
+  describe('fetchAllPokemonBasicInfo', () => {
+    it('should fetch all pokemon basic info', async () => {
+      const mockResponse = {
+        results: [
+          { name: 'bulbasaur', url: 'https://pokeapi.co/api/v2/pokemon/1/' },
+        ],
+      }
+
+      global.fetch = vi.fn().mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(mockResponse),
+      })
+
+      const result = await fetchAllPokemonBasicInfo()
+
+      expect(fetch).toHaveBeenCalledWith('https://pokeapi.co/api/v2/pokemon?limit=10000')
+      expect(result).toEqual(mockResponse)
+    })
+  })
+
+  describe('fetchPokemonByType', () => {
+    it('should fetch pokemon by type and transform response', async () => {
+      const mockResponse = {
+        pokemon: [
+          {
+            pokemon: {
+              name: 'pikachu',
+              url: 'https://pokeapi.co/api/v2/pokemon/25/',
+            },
+          },
+        ],
+      }
+
+      global.fetch = vi.fn().mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(mockResponse),
+      })
+
+      const result = await fetchPokemonByType('electric')
+
+      expect(fetch).toHaveBeenCalledWith('https://pokeapi.co/api/v2/type/electric')
+      expect(result).toEqual([
+        { name: 'pikachu', url: 'https://pokeapi.co/api/v2/pokemon/25/' },
+      ])
+    })
+  })
+
+
+
+  describe('getPokemonWithDescription', () => {
+    it('should aggregate pokemon data and description', async () => {
+      // Mock species response
+      const mockSpecies = {
+        flavor_text_entries: [
+          {
+            flavor_text: 'A mouse.',
+            language: { name: 'en' },
+          },
+        ],
+      }
+
+      // Mock pokemon details response
+      const mockPokemon = {
+        types: [{ type: { name: 'electric' } }],
+        height: 4,
+        weight: 60,
+      }
+
+      global.fetch = vi.fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve(mockSpecies),
+        }) // First call for species
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve(mockPokemon),
+        }) // Second call for pokemon details
+
+      const result = await getPokemonWithDescription('pikachu', 'https://pokeapi.co/api/v2/pokemon/25/')
+
+      expect(result).toEqual({
+        id: 25,
+        name: 'pikachu',
+        description: 'A mouse.',
+        imageUrl: expect.stringContaining('25.png'),
+        spriteUrl: expect.stringContaining('25.png'),
+        types: ['electric'],
+        height: 4,
+        weight: 60,
+      })
     })
 
-    it('should throw RateLimitError when rate limited', async () => {
-      global.fetch = vi.fn().mockResolvedValueOnce({
-        ok: false,
-        status: 429,
-        json: () =>
-          Promise.resolve({
-            error: {
-              code: 429,
-              message:
-                'Too Many Requests: Rate limit of 10 requests per hour exceeded. Please wait for 30 minutes and 4 seconds.',
-            },
-          }),
-      })
+    it('should return default data on error', async () => {
+      global.fetch = vi.fn().mockRejectedValue(new Error('Network error'))
 
-      await expect(translateToShakespearean('You are a pokemon!')).rejects.toMatchObject({
-        name: 'RateLimitError',
-      })
+      const result = await getPokemonWithDescription('pikachu', 'https://pokeapi.co/api/v2/pokemon/25/')
+
+      expect(result).toEqual(expect.objectContaining({
+        id: 25,
+        name: 'pikachu',
+        description: '',
+        types: [],
+      }))
     })
   })
 })
