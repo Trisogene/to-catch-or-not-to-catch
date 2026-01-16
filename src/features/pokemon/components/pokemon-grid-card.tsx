@@ -133,19 +133,30 @@ function StatBadge({
   )
 }
 
-function FavoriteButton({
-  isFavorite,
-  isAnimating,
-  onClick,
-}: {
-  isFavorite: boolean
-  isAnimating: boolean
-  onClick: () => void
-}) {
+function FavoriteButton({ pokemon }: { pokemon: Pokemon }) {
+  const [isAnimating, setIsAnimating] = useState(false)
+
+  const favorites = useAppStore((state) => state.favorites)
+  const toggleFavorite = useAppStore((state) => state.toggleFavorite)
+
+  const isFavorite = favorites.some((p) => p.id === pokemon.id)
+
+  const handleClick = useCallback(() => {
+    setIsAnimating(true)
+    toggleFavorite(pokemon)
+  }, [pokemon, toggleFavorite])
+
+  useEffect(() => {
+    if (isAnimating) {
+      const timer = setTimeout(() => setIsAnimating(false), 400)
+      return () => clearTimeout(timer)
+    }
+  }, [isAnimating])
+
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={handleClick}
       className="p-2 -mr-2 -mt-1 rounded-full hover:bg-primary/10 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
     >
       <Heart
@@ -163,31 +174,8 @@ function FavoriteButton({
 
 // Main Component
 
-export const PokemonGridCard = memo(function PokemonGridCard({
-  details,
-}: {
-  details: Pokemon
-}) {
-  const [isHeartAnimating, setIsHeartAnimating] = useState(false)
+export const PokemonGridCard = memo(function PokemonGridCard({ details }: { details: Pokemon }) {
   const primaryType = details.types?.[0] || 'normal'
-
-  // Access store internally
-  const favorites = useAppStore((state) => state.favorites)
-  const toggleFavorite = useAppStore((state) => state.toggleFavorite)
-
-  const isFavorite = favorites.some((p) => p.id === details.id)
-
-  const handleFavoriteClick = useCallback(() => {
-    setIsHeartAnimating(true)
-    toggleFavorite(details)
-  }, [details, toggleFavorite])
-
-  useEffect(() => {
-    if (isHeartAnimating) {
-      const timer = setTimeout(() => setIsHeartAnimating(false), 400)
-      return () => clearTimeout(timer)
-    }
-  }, [isHeartAnimating])
 
   const description = details.description || 'No description available for this Pokémon.'
 
@@ -224,11 +212,7 @@ export const PokemonGridCard = memo(function PokemonGridCard({
               <h3 className="font-bold capitalize text-lg text-foreground group-hover:text-primary transition-colors">
                 {details.name}
               </h3>
-              <FavoriteButton
-                isFavorite={isFavorite}
-                isAnimating={isHeartAnimating}
-                onClick={handleFavoriteClick}
-              />
+              <FavoriteButton pokemon={details} />
             </div>
 
             {details.types?.length > 0 && (
@@ -258,9 +242,7 @@ export const PokemonGridCard = memo(function PokemonGridCard({
         </div>
 
         {/* Shakespeare Translation */}
-        <ShakespeareCard
-          pokemon={details}
-        />
+        <ShakespeareCard pokemon={details} />
       </div>
     </article>
   )

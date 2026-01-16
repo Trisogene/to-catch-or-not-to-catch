@@ -49,7 +49,7 @@ export function NavBar() {
         </Button>
 
         {/* Airbnb-style Search Pill - Ultimate Fidelity */}
-      <SearchBar />
+        <SearchBar />
 
         {/* Right Section: Theme Toggle */}
         <div className="flex items-center gap-2">

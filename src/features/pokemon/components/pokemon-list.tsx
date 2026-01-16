@@ -16,8 +16,6 @@ export function PokemonList() {
 
   useEffect(() => {
     const checkColumns = () => {
-      // Logic matching standard Tailwind 'md' breakpoint (768px)
-      // Note: PokemonGridCard uses grid-cols-1 md:grid-cols-2
       if (window.matchMedia('(min-width: 768px)').matches) {
         setColumns(2)
       } else {
@@ -36,25 +34,26 @@ export function PokemonList() {
   const rowVirtualizer = useVirtualizer({
     count: rowCount,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 400, // Approximate height of a card row
-    overscan: 5,
+    estimateSize: () => 450, // Estimate, will be refined by measureElement
+    measureElement: (element) => {
+      // Measure the actual height of the row element
+      return element.getBoundingClientRect().height + 24 // Add gap spacing
+    },
+    overscan: 3,
   })
 
-  // We need details for the currently visible items
-  // With virtualization, we calculate which items are visible
+  // Calculate visible items for data fetching
   const virtualRows = rowVirtualizer.getVirtualItems()
-  
-  // Calculate the range of items currently rendered to fetch details for them
-  // This is a bit of an optimization: we only want to fetch details for the items that are "visible" (virtualized)
+
   const visibleItems = useMemo(() => {
     if (!virtualRows.length) return []
-    
+
     const startRow = virtualRows[0].index
     const endRow = virtualRows[virtualRows.length - 1].index
-    
+
     const startIndex = startRow * columns
     const endIndex = Math.min((endRow + 1) * columns, filteredList.length)
-    
+
     return filteredList.slice(startIndex, endIndex)
   }, [virtualRows, columns, filteredList])
 
@@ -64,7 +63,6 @@ export function PokemonList() {
   if (isLoading || isSearching) {
     return (
       <div className="h-full flex flex-col">
-        {/* Skeleton Header */}
         <div className="flex-shrink-0 pb-6 pt-4 px-6">
           <div className="h-8 w-48 bg-muted/30 animate-shimmer rounded-xl" />
         </div>
@@ -132,32 +130,32 @@ export function PokemonList() {
               return (
                 <div
                   key={virtualRow.key}
+                  data-index={virtualRow.index}
+                  ref={rowVirtualizer.measureElement}
                   style={{
                     position: 'absolute',
                     top: 0,
                     left: 0,
                     width: '100%',
-                    height: `${virtualRow.size}px`,
                     transform: `translateY(${virtualRow.start}px)`,
                   }}
-                  className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-6"
+                  className="grid grid-cols-1 md:grid-cols-2 gap-6"
                 >
                   {itemsInRow.map((item: { name: string; url: string }) => {
                     const details = detailsMap.get(item.name)
-                    const isLoading = !details
+                    const isItemLoading = !details
 
-                    if (isLoading) {
+                    if (isItemLoading) {
                       return (
                         <div
                           key={item.name}
-                          className="h-full w-full rounded-3xl bg-muted/20 animate-shimmer border border-border/30"
+                          className="h-[400px] w-full rounded-3xl bg-muted/20 animate-shimmer border border-border/30"
                         />
                       )
                     }
 
                     return <PokemonGridCard key={details.name} details={details} />
                   })}
-                  {/* Fill empty space if last row has fewer items than columns */}
                   {itemsInRow.length < columns && <div className="hidden md:block" />}
                 </div>
               )

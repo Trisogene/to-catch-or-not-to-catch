@@ -170,9 +170,7 @@ export function SearchBar() {
                     : 'font-normal text-muted-foreground/60',
                 )}
               >
-                {selectedTypes.length === 0
-                  ? 'Any Type'
-                  : `${selectedTypes.length} selected`}
+                {selectedTypes.length === 0 ? 'Any Type' : `${selectedTypes.length} selected`}
               </span>
             </div>
           </DropdownMenuTrigger>
@@ -181,9 +179,7 @@ export function SearchBar() {
             className="w-[360px] p-0 rounded-[2rem] shadow-[0_8px_30px_rgba(0,0,0,0.12)] border-border/60 bg-card/95 backdrop-blur-xl mt-4 overflow-hidden z-50"
           >
             <div className="p-6 border-b border-border/50 flex items-center justify-between bg-muted/10">
-              <span className="font-bold text-xl tracking-tight">
-                Filter by Type
-              </span>
+              <span className="font-bold text-xl tracking-tight">Filter by Type</span>
               {pendingTypes.length > 0 && (
                 <Button
                   variant="link"

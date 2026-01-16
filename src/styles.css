@@ -162,14 +162,14 @@
 /* Background pattern - subtle grid */
 body {
   background-color: var(--background);
-  background-image: 
+  background-image:
     linear-gradient(to right, oklch(0.5 0.02 265 / 4%) 1px, transparent 1px),
     linear-gradient(to bottom, oklch(0.5 0.02 265 / 4%) 1px, transparent 1px);
   background-size: 48px 48px;
 }
 
 html.dark body {
-  background-image: 
+  background-image:
     linear-gradient(to right, oklch(0.6 0.02 265 / 6%) 1px, transparent 1px),
     linear-gradient(to bottom, oklch(0.6 0.02 265 / 6%) 1px, transparent 1px);
 }
