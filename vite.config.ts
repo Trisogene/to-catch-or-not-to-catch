@@ -11,6 +11,12 @@ const config = defineConfig({
     devtools(),
     nitro({
       preset: 'vercel',
+      compatibilityDate: '2025-01-01',
+      vercel: {
+        functions: {
+          runtime: 'nodejs20.x',
+        },
+      },
     }),
     // this is the plugin that enables path aliases
     viteTsConfigPaths({
