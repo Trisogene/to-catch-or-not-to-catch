@@ -3,18 +3,34 @@ import { FavoritesList } from '@/features/favorites/components/favorites-list'
 import { BottomNav } from '@/features/navigation/components/bottom-nav'
 import { NavBar } from '@/features/navigation/components/nav-bar'
 import { PokemonList } from '@/features/pokemon/components/pokemon-list'
-import { fetchAllPokemonBasicInfo } from '@/services/pokemon.service'
+import { fetchAllPokemonBasicInfo, getPokemonWithDescription } from '@/services/pokemon.service'
 import { useAppStore } from '@/store/use-app-store'
 import { queryClient } from './__root'
 
 export const Route = createFileRoute('/')({
   component: App,
-  loader: () =>
-    queryClient.ensureQueryData({
+  loader: async () => {
+    // Fetch basic Pokemon list
+    const basicList = await queryClient.ensureQueryData({
       queryKey: ['allPokemonBasic'],
       queryFn: fetchAllPokemonBasicInfo,
       staleTime: 1000 * 60 * 60 * 24, // 24 hours
-    }),
+    })
+
+    // SSR prefetch first 12 Pokemon details
+    const first12 = basicList.results.slice(0, 12)
+    await Promise.all(
+      first12.map((pokemon) =>
+        queryClient.ensureQueryData({
+          queryKey: ['pokemonDetail', pokemon.name],
+          queryFn: () => getPokemonWithDescription(pokemon.name, pokemon.url),
+          staleTime: 1000 * 60 * 60 * 24,
+        }),
+      ),
+    )
+
+    return basicList
+  },
 })
 
 function App() {

@@ -2,7 +2,7 @@ import { useVirtualizer } from '@tanstack/react-virtual'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { usePokemonData, usePokemonDetails } from '@/features/pokemon/hooks/use-pokemon-data'
 import { useAppStore } from '@/store/use-app-store'
-import { PokemonGridCard } from './pokemon-grid-card'
+import { PokemonCard } from './pokemon-card'
 
 export function PokemonList() {
   const isSearching = useAppStore((state) => state.isSearching)
@@ -154,7 +154,7 @@ export function PokemonList() {
                       )
                     }
 
-                    return <PokemonGridCard key={details.name} details={details} />
+                    return <PokemonCard key={details.name} details={details} />
                   })}
                   {itemsInRow.length < columns && <div className="hidden md:block" />}
                 </div>

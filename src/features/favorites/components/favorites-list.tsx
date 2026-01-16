@@ -1,20 +1,11 @@
 import { Heart } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { useShakespeareTranslation } from '@/features/common/hooks/use-shakespeare-translation'
-import { PokemonGridCard } from '@/features/pokemon/components/pokemon-grid-card'
-import { getCachedTranslation } from '@/lib/translation-cache'
+import { PokemonCard } from '@/features/pokemon/components/pokemon-card'
 import { useAppStore } from '@/store/use-app-store'
 
 export function FavoritesList() {
   const favorites = useAppStore((state) => state.favorites)
-  const toggleFavorite = useAppStore((state) => state.toggleFavorite)
-  const {
-    translate,
-    isLoading: isTranslating,
-    error: rateLimitError,
-    activeId,
-  } = useShakespeareTranslation()
 
   return (
     <Card className="h-full flex flex-col border-0 shadow-none bg-transparent ring-0">
@@ -46,25 +37,9 @@ export function FavoritesList() {
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4 pb-4">
-            {favorites.map((pokemon) => {
-              const isItemTranslating = isTranslating && activeId === pokemon.id
-
-              return (
-                <div key={pokemon.id} className="h-full">
-                  <PokemonGridCard
-                    details={pokemon}
-                    isFavorite={true}
-                    onToggleFavorite={toggleFavorite}
-                    shakespeareDesc={
-                      pokemon.shakespeareanDescription || getCachedTranslation(pokemon.id) || null
-                    }
-                    isTranslating={isItemTranslating}
-                    rateLimitError={rateLimitError}
-                    onTranslate={translate}
-                  />
-                </div>
-              )
-            })}
+            {favorites.map((pokemon) => (
+              <PokemonCard key={pokemon.id} details={pokemon} />
+            ))}
           </div>
         )}
       </CardContent>
