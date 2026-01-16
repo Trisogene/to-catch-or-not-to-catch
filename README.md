@@ -2,7 +2,7 @@
 
 ![toCATCH Screenshot](public/screenshot.png)
 
-> **⚠️ Test Project** - Questo è un progetto creato come esercizio tecnico per dimostrare l'utilizzo di React 19, TanStack Start, SSR, virtualization e architettura moderna.
+> **⚠️ Test Project** - This is a project created as a technical exercise to demonstrate the use of React 19, TanStack Start, SSR, virtualization, and modern architecture.
 
 ---
 
