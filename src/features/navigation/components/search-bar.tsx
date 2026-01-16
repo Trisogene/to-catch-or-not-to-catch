@@ -136,6 +136,7 @@ export function SearchBar() {
             {localSearch && (
               <button
                 type="button"
+                aria-label="Clear search"
                 onClick={(e) => {
                   e.stopPropagation() // Prevent triggering the pill click
                   setLocalSearch('')
@@ -167,7 +168,7 @@ export function SearchBar() {
                   'text-[15px] truncate block',
                   selectedTypes.length > 0
                     ? 'font-semibold text-foreground'
-                    : 'font-normal text-muted-foreground/60',
+                    : 'font-normal text-muted-foreground',
                 )}
               >
                 {selectedTypes.length === 0 ? 'Any Type' : `${selectedTypes.length} selected`}
@@ -239,6 +240,7 @@ export function SearchBar() {
         <div className="pl-2 pr-2">
           <button
             type="button"
+            aria-label="Search Pokémon"
             onClick={() => {
               setSearchQuery(localSearch)
             }}

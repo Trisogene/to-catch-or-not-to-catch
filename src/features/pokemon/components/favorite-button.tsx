@@ -38,6 +38,9 @@ export function FavoriteButton({ pokemon }: { pokemon: Pokemon }) {
     <button
       type="button"
       onClick={handleClick}
+      aria-label={
+        isFavorite ? `Remove ${pokemon.name} from favorites` : `Add ${pokemon.name} to favorites`
+      }
       className="p-2 -mr-2 -mt-1 rounded-full hover:bg-primary/10 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
     >
       <Heart

@@ -25,7 +25,12 @@ export const Route = createRootRoute({
         content: 'width=device-width, initial-scale=1',
       },
       {
-        title: 'To Catch or Not To Catch',
+        title: 'toCATCH - Pokémon Pokédex',
+      },
+      {
+        name: 'description',
+        content:
+          'Explore and discover Pokémon with toCATCH. Browse the complete Pokédex, save your favorites, and get Shakespearean translations of Pokémon descriptions.',
       },
     ],
     links: [
@@ -43,10 +48,6 @@ function RootDocument({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className="dark">
       <head>
-        {/* <script
-          crossOrigin="anonymous"
-          src="//unpkg.com/react-scan/dist/auto.global.js"
-        /> */}
         <HeadContent />
       </head>
       <body>

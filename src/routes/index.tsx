@@ -37,7 +37,7 @@ function App() {
   const activeTab = useAppStore((state) => state.activeTab)
 
   return (
-    <div id="App-Container" className="h-[100dvh] w-full flex flex-col overflow-hidden">
+    <main id="App-Container" className="h-[100dvh] w-full flex flex-col overflow-hidden">
       <NavBar />
 
       <div className="flex-1 w-full min-h-0 container mx-auto px-4 py-4 max-w-7xl overflow-hidden">
@@ -61,6 +61,6 @@ function App() {
       </div>
 
       <BottomNav />
-    </div>
+    </main>
   )
 }
