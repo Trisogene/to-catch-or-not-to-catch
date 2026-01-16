@@ -1,4 +1,10 @@
-# toCATCH - Technical Documentation
+# toCATCH - Pokémon Pokédex
+
+![toCATCH Screenshot](public/screenshot.png)
+
+> **⚠️ Test Project** - Questo è un progetto creato come esercizio tecnico per dimostrare l'utilizzo di React 19, TanStack Start, SSR, virtualization e architettura moderna.
+
+---
 
 ## 🛠️ Tech Stack
 
@@ -223,4 +229,14 @@ pnpm dev       # Dev server :3000
 pnpm build     # Production build
 pnpm preview   # Preview build
 pnpm check     # Biome lint + format
+```
+
+---
+
+## 🚀 Deploy
+
+Configured for **Vercel** with Nitro preset:
+
+```bash
+npx vercel
 ```
